@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">CineScopeProyect</string>
+    <string name="title_activity_login">loginActivity</string>
+    <string name="title_activity_splash">SplashActivity</string>
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="title_activity_dashboard">DashboardActivity</string>
+    <string name="title_activity_historial">Historial</string>
+    <string name="title_activity_mi_lista">Mi Lista</string>
+    <string name="title_activity_favoritos">Favoritos</string>
+    <string name="title_activity_perfil">Perfil</string>
+    <string name="title_activity_detalle_pelicula">Detalle</string>
+    <string name="title_activity_busqueda">Búsqueda</string>
+</resources>
