@@ -59,18 +59,13 @@ class MiListaActivity : ComponentActivity() {
         }
     }
 }
-        setContent {
-            CineScopeProyectTheme {
-                MiListaScreen(
-                    onBack = { finish() }
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun MiListaScreen(
+    items: List<MyListEntity> = emptyList(),
+    itemCount: Int = 0,
+    isLoading: Boolean = false,
+    onRemoveItem: (Long) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     Box(
@@ -223,7 +218,7 @@ fun MiListaScreen(
 
             // ── CONTADOR DE PELÍCULAS ───────────────────────────────────────────
             Text(
-                text = "${miListaData.size} PELÍCULAS GUARDADAS",
+                text = "$itemCount PELÍCULAS GUARDADAS",
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 color = RedMain,
                 fontSize = 11.sp,
@@ -239,8 +234,8 @@ fun MiListaScreen(
                 contentPadding = PaddingValues(bottom = 88.dp, top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(miListaData) { item ->
-                    ListaMovieCard(item)
+                items(items, key = { it.id }) { item ->
+                    ListaMovieCard(item = item, onRemove = { onRemoveItem(item.id) })
                 }
             }
         }
@@ -248,7 +243,7 @@ fun MiListaScreen(
 }
 
 @Composable
-private fun ListaMovieCard(item: ListaItem) {
+private fun ListaMovieCard(item: MyListEntity, onRemove: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -264,7 +259,7 @@ private fun ListaMovieCard(item: ListaItem) {
                 .clip(RoundedCornerShape(10.dp))
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(item.color1, item.color2)
+                        colors = listOf(Color(item.color1), Color(item.color2))
                     )
                 ),
             contentAlignment = Alignment.Center
@@ -293,7 +288,7 @@ private fun ListaMovieCard(item: ListaItem) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "${item.match} Match",
+                    text = "${item.matchPercentage} Match",
                     color = MatchGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
@@ -313,32 +308,20 @@ private fun ListaMovieCard(item: ListaItem) {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = item.added,
+                text = "Added: ${item.addedAt}",
                 color = TextGray.copy(alpha = 0.7f),
                 fontSize = 11.sp
             )
         }
 
-        // Botón de eliminar
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .background(Color(0xFF2A2020), CircleShape)
-                .clickable { },
+                .clickable { onRemove() },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "🗑️",
-                fontSize = 18.sp
-            )
+            Text(text = "🗑️", fontSize = 18.sp)
         }
-    }
-}
-
-@Preview(showBackground = true, widthDp = 390, heightDp = 844)
-@Composable
-fun MiListaScreenPreview() {
-    CineScopeProyectTheme {
-        MiListaScreen()
     }
 }

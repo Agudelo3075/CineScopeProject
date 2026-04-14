@@ -360,14 +360,14 @@ fun SectionHeader(title: String, action: String) {
 }
 
 @Composable
-fun MovieCard(movie: Movie, width: Int, height: Int, onClick: () -> Unit = {}) {
+fun MovieCard(movie: MovieEntity, width: Int, height: Int, onClick: () -> Unit = {}) {
     Column(modifier = Modifier.width(width.dp)) {
         Box(
             modifier = Modifier
                 .width(width.dp)
                 .height(height.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(Brush.verticalGradient(listOf(movie.color1, movie.color2)))
+                .background(Brush.verticalGradient(listOf(Color(movie.color1), Color(movie.color2))))
                 .clickable { onClick() }
         ) {
             Box(
@@ -380,7 +380,7 @@ fun MovieCard(movie: Movie, width: Int, height: Int, onClick: () -> Unit = {}) {
                         )
                     )
             )
-            if (movie.isNew) {
+            if (movie.isNewRelease) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)

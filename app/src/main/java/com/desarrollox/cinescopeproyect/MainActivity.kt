@@ -56,8 +56,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(uiState.loginSuccess) {
                     if (uiState.loginSuccess) {
                         viewModel.resetLoginSuccess()
-                        startActivity(Intent(this, DashboardActivity::class.java))
-                        finish()
+                        this@MainActivity.startActivity(Intent(this@MainActivity, DashboardActivity::class.java))
+                        this@MainActivity.finish()
                     }
                 }
                 
@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
                     error = uiState.error,
                     onLogin = { email, password -> viewModel.login(email, password) },
                     onGoToRegister = {
-                        startActivity(Intent(this, RegisterActivity::class.java))
+                        this@MainActivity.startActivity(Intent(this@MainActivity, RegisterActivity::class.java))
                     },
                     onClearError = { viewModel.clearError() }
                 )

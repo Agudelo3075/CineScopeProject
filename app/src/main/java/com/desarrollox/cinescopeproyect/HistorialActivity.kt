@@ -41,7 +41,6 @@ private val RedDark     = Color(0xFFB71C1C)
 private val TextWhite   = Color(0xFFF5F5F5)
 private val TextGray    = Color(0xFF9E8E8E)
 private val CardBg      = Color(0xFF1E1414)
-)
 
 class HistorialActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,11 +76,16 @@ fun HistorialScreen(
     onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    var selectedCategory by remember { mutableIntStateOf(selectedTab) }
     val categories = listOf("Películas", "Series", "Documentales", "Mi Lista")
-    val currentList = when (selectedTab) {
-        0 -> movies
-        1 -> series
-        else -> emptyList()
+    val currentList by remember(selectedCategory) {
+        mutableStateOf(
+            when (selectedCategory) {
+                0 -> movies
+                1 -> series
+                else -> emptyList()
+            }
+        )
     }
 
     Box(
@@ -232,7 +236,10 @@ fun HistorialScreen(
                 categories.forEachIndexed { index, category ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { selectedCategory = index }
+                        modifier = Modifier.clickable {
+                            selectedCategory = index
+                            onTabSelect(index)
+                        }
                     ) {
                         Text(
                             text = category,
@@ -258,24 +265,9 @@ fun HistorialScreen(
                     .padding(horizontal = 24.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(historyData) { item ->
-                    when (item) {
-                        is HistoryItem.DateHeader -> {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = item.date,
-                                color = RedMain,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        is HistoryItem.Movie -> {
-                            HistoryMovieCard(item)
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-                    }
+                items(currentList) { item ->
+                    HistoryMovieCard(movie = item)
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
@@ -283,7 +275,7 @@ fun HistorialScreen(
 }
 
 @Composable
-private fun HistoryMovieCard(movie: HistoryItem.Movie) {
+private fun HistoryMovieCard(movie: WatchHistoryEntity) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -336,7 +328,7 @@ private fun HistoryMovieCard(movie: HistoryItem.Movie) {
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = movie.status,
+                        text = "Completed",
                         color = TextGray,
                         fontSize = 12.sp
                     )
@@ -354,7 +346,7 @@ private fun HistoryMovieCard(movie: HistoryItem.Movie) {
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = movie.status,
+                        text = "In progress: ${(movie.progress * 100).toInt()}%",
                         color = TextGray,
                         fontSize = 11.sp
                     )
@@ -362,9 +354,9 @@ private fun HistoryMovieCard(movie: HistoryItem.Movie) {
             }
         }
 
-        if (movie.time.isNotEmpty()) {
+        if (movie.watchedAt > 0) {
             Text(
-                text = movie.time,
+                text = "Watched recently",
                 color = TextGray,
                 fontSize = 12.sp
             )

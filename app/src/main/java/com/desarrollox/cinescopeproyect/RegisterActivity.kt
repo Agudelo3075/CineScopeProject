@@ -58,10 +58,11 @@ class RegisterActivity : ComponentActivity() {
                 LaunchedEffect(uiState.registerSuccess) {
                     if (uiState.registerSuccess) {
                         viewModel.resetRegisterSuccess()
-                        startActivity(Intent(this, DashboardActivity::class.java).apply {
+                        val intent = Intent(this@RegisterActivity, DashboardActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        })
-                        finish()
+                        }
+                        this@RegisterActivity.startActivity(intent)
+                        this@RegisterActivity.finish()
                     }
                 }
                 
@@ -71,7 +72,7 @@ class RegisterActivity : ComponentActivity() {
                     onRegister = { name, email, password, confirm ->
                         viewModel.register(name, email, password, confirm)
                     },
-                    onGoToLogin = { finish() },
+                    onGoToLogin = { this@RegisterActivity.finish() },
                     onClearError = { viewModel.clearError() }
                 )
             }
@@ -403,7 +404,8 @@ private fun RegTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     icon: ImageVector,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    enabled: Boolean = true
 ) {
     OutlinedTextField(
         value = value,
@@ -412,6 +414,7 @@ private fun RegTextField(
         leadingIcon = { Icon(icon, contentDescription = null, tint = Color(0xFF9E8E8E)) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         singleLine = true,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = regFieldColors()

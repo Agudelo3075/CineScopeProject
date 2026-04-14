@@ -41,6 +41,27 @@ private val TextWhite   = Color(0xFFF5F5F5)
 private val TextGray    = Color(0xFF9E8E8E)
 private val CardBg      = Color(0xFF1E1414)
 
+@Composable
+private fun PerfilStatCard(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBg),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp, horizontal = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, color = TextGray, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(value, color = TextWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
 class PerfilActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -300,8 +321,8 @@ fun PerfilScreen(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                StatCard("VISTAS", viewsCount.toString(), Modifier.weight(1f))
-                StatCard("FAVORITAS", favoritesCount.toString(), Modifier.weight(1f))
+                PerfilStatCard("VISTAS", viewsCount.toString(), Modifier.weight(1f))
+                PerfilStatCard("FAVORITAS", favoritesCount.toString(), Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -376,43 +397,4 @@ fun PerfilScreen(
         Spacer(modifier = Modifier.height(80.dp))
     }
 }
-
-@Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 20.dp, horizontal = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                label,
-                color = TextGray,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                value,
-                color = TextWhite,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, widthDp = 390, heightDp = 844)
-@Composable
-fun PerfilScreenPreview() {
-    CineScopeProyectTheme {
-        PerfilScreen()
-    }
 }
