@@ -1,5 +1,6 @@
 package com.desarrollox.cinescopeproyect
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,9 +33,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.AuthViewModel
 
-// ─── Colores ──────────────────────────────────────────────────────────────────
 private val BgDark      = Color(0xFF120A0A)
 private val FieldBg     = Color(0xFF1E1414)
 private val FieldBorder = Color(0xFF2E2020)
@@ -49,8 +52,27 @@ class RegisterActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
+                val viewModel: AuthViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(uiState.registerSuccess) {
+                    if (uiState.registerSuccess) {
+                        viewModel.resetRegisterSuccess()
+                        startActivity(Intent(this, DashboardActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        finish()
+                    }
+                }
+                
                 RegisterScreen(
-                    onGoToLogin = { finish() }
+                    isLoading = uiState.isLoading,
+                    error = uiState.error,
+                    onRegister = { name, email, password, confirm ->
+                        viewModel.register(name, email, password, confirm)
+                    },
+                    onGoToLogin = { finish() },
+                    onClearError = { viewModel.clearError() }
                 )
             }
         }
@@ -59,8 +81,11 @@ class RegisterActivity : ComponentActivity() {
 
 @Composable
 fun RegisterScreen(
-    onRegisterSuccess: () -> Unit = {},
-    onGoToLogin: () -> Unit = {}
+    isLoading: Boolean = false,
+    error: String? = null,
+    onRegister: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onGoToLogin: () -> Unit = {},
+    onClearError: () -> Unit = {}
 ) {
     var fullName            by remember { mutableStateOf("") }
     var email               by remember { mutableStateOf("") }
@@ -80,7 +105,6 @@ fun RegisterScreen(
                 .verticalScroll(rememberScrollState())
         ) {
 
-            // ── TOP BAR ───────────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -117,7 +141,6 @@ fun RegisterScreen(
                 }
             }
 
-            // ── HERO: sala de cine simulada ───────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +170,6 @@ fun RegisterScreen(
                             )
                         )
                 )
-                // Butacas
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -176,7 +198,6 @@ fun RegisterScreen(
                         }
                     }
                 }
-                // Degradado inferior
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -184,7 +205,6 @@ fun RegisterScreen(
                         .align(Alignment.BottomCenter)
                         .background(Brush.verticalGradient(listOf(Color.Transparent, BgDark)))
                 )
-                // Texto hero
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -204,7 +224,6 @@ fun RegisterScreen(
                 }
             }
 
-            // ── FORMULARIO ────────────────────────────────────────────────────
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -219,30 +238,45 @@ fun RegisterScreen(
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
-                // Full Name
+                if (error != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = RedDark.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(error, color = TextWhite, fontSize = 13.sp)
+                            Text("✕", color = TextWhite, modifier = Modifier.clickable { onClearError() })
+                        }
+                    }
+                }
+
                 RegFieldLabel("Full Name")
                 RegTextField(
                     value = fullName,
                     onValueChange = { fullName = it },
                     placeholder = "John Doe",
-                    icon = Icons.Default.Person
+                    icon = Icons.Default.Person,
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Email
                 RegFieldLabel("Email Address")
                 RegTextField(
                     value = email,
                     onValueChange = { email = it },
                     placeholder = "john@example.com",
                     icon = Icons.Default.Email,
-                    keyboardType = KeyboardType.Email
+                    keyboardType = KeyboardType.Email,
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Password
                 RegFieldLabel("Password")
                 OutlinedTextField(
                     value = password,
@@ -262,12 +296,12 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = regFieldColors()
+                    colors = regFieldColors(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Confirm Password
                 RegFieldLabel("Confirm Password")
                 OutlinedTextField(
                     value = confirmPassword,
@@ -287,20 +321,21 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = regFieldColors()
+                    colors = regFieldColors(),
+                    enabled = !isLoading
                 )
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Botón Create Account
                 Button(
-                    onClick = { onRegisterSuccess() },
+                    onClick = { onRegister(fullName, email, password, confirmPassword) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues()
+                    contentPadding = PaddingValues(),
+                    enabled = !isLoading
                 ) {
                     Box(
                         modifier = Modifier
@@ -311,18 +346,25 @@ fun RegisterScreen(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Create Account",
-                            color = TextWhite,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = TextWhite,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Create Account",
+                                color = TextWhite,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Link login
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -333,7 +375,7 @@ fun RegisterScreen(
                         color = RedMain,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { onGoToLogin() }
+                        modifier = Modifier.clickable(enabled = !isLoading) { onGoToLogin() }
                     )
                 }
 

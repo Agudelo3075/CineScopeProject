@@ -14,50 +14,51 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.desarrollox.cinescopeproyect.data.local.entity.MyListEntity
+import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.MyListViewModel
 
-// ─── Colores (MISMOS que RegisterActivity) ────────────────────────────────────
 private val BgDark      = Color(0xFF120A0A)
 private val RedMain     = Color(0xFFE53935)
 private val TextWhite   = Color(0xFFF5F5F5)
 private val TextGray    = Color(0xFF9E8E8E)
 private val MatchGreen  = Color(0xFF4CAF50)
 
-// ─── Datos de ejemplo para Mi Lista ──────────────────────────────────────────
-private data class ListaItem(
-    val title: String,
-    val match: String,
-    val genres: String,
-    val added: String,
-    val color1: Color,
-    val color2: Color
-)
-
-private val miListaData = listOf(
-    ListaItem("Inception", "95%", "Sci-Fi, Acción", "Añadido hace 2 días", Color(0xFF2D1B00), Color(0xFF1A0A2E)),
-    ListaItem("The Dark Knight", "98%", "Acción, Drama", "Añadido ayer", Color(0xFF1A1A2E), Color(0xFF0D0D0D)),
-    ListaItem("Interstellar", "92%", "Sci-Fi, Aventura", "Añadido hace 1 semana", Color(0xFF000510), Color(0xFF001530)),
-    ListaItem("Dune: Part Two", "99%", "Épico, Sci-Fi", "Añadido hoy", Color(0xFF1A1500), Color(0xFF2A2000)),
-    ListaItem("Parasite", "89%", "Thriller, Drama", "Añadido hace 2 semanas", Color(0xFF0A1A0A), Color(0xFF152E15)),
-    ListaItem("Oppenheimer", "97%", "Drama, Historia", "Añadido hace 3 días", Color(0xFF2A0A0A), Color(0xFF3A1515)),
-    ListaItem("Spider-Verse", "96%", "Animación, Acción", "Añadido ayer", Color(0xFF1A0030), Color(0xFF300040))
-)
-
 class MiListaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        setContent {
+            CineScopeProyectTheme {
+                val viewModel: MyListViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                MiListaScreen(
+                    items = uiState.items,
+                    itemCount = uiState.itemCount,
+                    isLoading = uiState.isLoading,
+                    onRemoveItem = { viewModel.removeFromList(it) },
+                    onBack = { finish() }
+                )
+            }
+        }
+    }
+}
         setContent {
             CineScopeProyectTheme {
                 MiListaScreen(

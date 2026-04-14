@@ -1,5 +1,6 @@
 package com.desarrollox.cinescopeproyect
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,20 +17,23 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.ProfileViewModel
 
-// ─── Colores (MISMOS que RegisterActivity) ────────────────────────────────────
 private val BgDark      = Color(0xFF120A0A)
 private val RedMain     = Color(0xFFE53935)
 private val RedDark     = Color(0xFFB71C1C)
@@ -43,7 +47,28 @@ class PerfilActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
+                val viewModel: ProfileViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val context = LocalContext.current
+                
+                LaunchedEffect(uiState.logoutSuccess) {
+                    if (uiState.logoutSuccess) {
+                        viewModel.resetLogoutSuccess()
+                        context.startActivity(Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        finish()
+                    }
+                }
+                
                 PerfilScreen(
+                    userName = uiState.user?.fullName ?: "User",
+                    userEmail = uiState.user?.email ?: "",
+                    userInitials = uiState.user?.avatarInitials ?: "U",
+                    viewsCount = uiState.viewsCount,
+                    favoritesCount = uiState.favoritesCount,
+                    isLoading = uiState.isLoading,
+                    onLogout = { viewModel.logout() },
                     onBack = { finish() }
                 )
             }
@@ -53,6 +78,13 @@ class PerfilActivity : ComponentActivity() {
 
 @Composable
 fun PerfilScreen(
+    userName: String = "User",
+    userEmail: String = "",
+    userInitials: String = "U",
+    viewsCount: Int = 0,
+    favoritesCount: Int = 0,
+    isLoading: Boolean = false,
+    onLogout: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     Box(
@@ -60,26 +92,33 @@ fun PerfilScreen(
             .fillMaxSize()
             .background(BgDark)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            // ── TOP BAR (MISMO estilo que RegisterActivity) ──────────────────────
+        if (isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "←",
-                    color = TextWhite,
-                    fontSize = 22.sp,
+                CircularProgressIndicator(color = RedMain)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Box(
                     modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .clickable { onBack() }
-                )
-                Row(
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "←",
+                        color = TextWhite,
+                        fontSize = 22.sp,
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .clickable { onBack() }
+                    )
+                    Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.align(Alignment.Center)
                 ) {
@@ -225,7 +264,7 @@ fun PerfilScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "AC",
+                        userInitials,
                         color = TextWhite,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
@@ -235,7 +274,7 @@ fun PerfilScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    "Alex Cinema",
+                    userName,
                     color = TextWhite,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -245,7 +284,7 @@ fun PerfilScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    "alex.cinema@example.com",
+                    userEmail,
                     color = RedMain,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
@@ -261,8 +300,8 @@ fun PerfilScreen(
                     .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                StatCard("VISTAS", "124", Modifier.weight(1f))
-                StatCard("FAVORITAS", "45", Modifier.weight(1f))
+                StatCard("VISTAS", viewsCount.toString(), Modifier.weight(1f))
+                StatCard("FAVORITAS", favoritesCount.toString(), Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(28.dp))

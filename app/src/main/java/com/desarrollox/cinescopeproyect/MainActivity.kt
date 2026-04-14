@@ -31,7 +31,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.AuthViewModel
 
 private val BgDark      = Color(0xFF120A0A)
 private val FieldBg     = Color(0xFF1E1414)
@@ -47,15 +50,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
-                MainLoginScreen(
-                    onLoginSuccess = {
-                        // ✅ Navega a HomeActivity (sin importar usuario/contraseña)
+                val viewModel: AuthViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(uiState.loginSuccess) {
+                    if (uiState.loginSuccess) {
+                        viewModel.resetLoginSuccess()
                         startActivity(Intent(this, DashboardActivity::class.java))
                         finish()
-                    },
+                    }
+                }
+                
+                MainLoginScreen(
+                    isLoading = uiState.isLoading,
+                    error = uiState.error,
+                    onLogin = { email, password -> viewModel.login(email, password) },
                     onGoToRegister = {
                         startActivity(Intent(this, RegisterActivity::class.java))
-                    }
+                    },
+                    onClearError = { viewModel.clearError() }
                 )
             }
         }
@@ -64,8 +77,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainLoginScreen(
-    onLoginSuccess: () -> Unit = {},
-    onGoToRegister: () -> Unit = {}
+    isLoading: Boolean = false,
+    error: String? = null,
+    onLogin: (String, String) -> Unit = { _, _ -> },
+    onGoToRegister: () -> Unit = {},
+    onClearError: () -> Unit = {}
 ) {
     var email           by remember { mutableStateOf("") }
     var password        by remember { mutableStateOf("") }
@@ -75,7 +91,6 @@ fun MainLoginScreen(
     Box(modifier = Modifier.fillMaxSize().background(BgDark)) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
 
-            // ── TOP BAR ───────────────────────────────────────────────────────
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)
@@ -89,7 +104,6 @@ fun MainLoginScreen(
                     fontWeight = FontWeight.Bold, fontFamily = FontFamily.SansSerif)
             }
 
-            // ── HERO sala de cine ─────────────────────────────────────────────
             Box(modifier = Modifier.fillMaxWidth().height(220.dp)) {
                 Box(modifier = Modifier.fillMaxSize().background(
                     Brush.verticalGradient(listOf(
@@ -127,8 +141,23 @@ fun MainLoginScreen(
                 }
             }
 
-            // ── FORMULARIO ────────────────────────────────────────────────────
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 8.dp)) {
+
+                if (error != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = RedDark.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(error, color = TextWhite, fontSize = 13.sp)
+                            Text("✕", color = TextWhite, modifier = Modifier.clickable { onClearError() })
+                        }
+                    }
+                }
 
                 Text("EMAIL ADDRESS", color = TextGray, fontSize = 11.sp,
                     fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
@@ -139,7 +168,8 @@ fun MainLoginScreen(
                     leadingIcon = { Icon(Icons.Default.Email, null, tint = TextGray) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors()
+                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors(),
+                    enabled = !isLoading
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -166,37 +196,47 @@ fun MainLoginScreen(
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors()
+                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors(),
+                    enabled = !isLoading
                 )
 
                 Spacer(Modifier.height(14.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { rememberDevice = !rememberDevice }) {
+                    modifier = Modifier.clickable(enabled = !isLoading) { rememberDevice = !rememberDevice }) {
                     Checkbox(checked = rememberDevice, onCheckedChange = { rememberDevice = it },
                         colors = CheckboxDefaults.colors(
-                            checkedColor = RedMain, uncheckedColor = TextGray, checkmarkColor = TextWhite))
+                            checkedColor = RedMain, uncheckedColor = TextGray, checkmarkColor = TextWhite),
+                        enabled = !isLoading)
                     Spacer(Modifier.width(4.dp))
                     Text("Remember this device", color = TextGray, fontSize = 13.sp)
                 }
 
                 Spacer(Modifier.height(20.dp))
 
-                // ✅ Sign In → HomeActivity
                 Button(
-                    onClick = { onLoginSuccess() },
+                    onClick = { onLogin(email, password) },
                     modifier = Modifier.fillMaxWidth().height(54.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues()
+                    contentPadding = PaddingValues(),
+                    enabled = !isLoading
                 ) {
                     Box(modifier = Modifier.fillMaxSize()
                         .background(Brush.horizontalGradient(listOf(RedDark, RedMain)), RoundedCornerShape(14.dp)),
                         contentAlignment = Alignment.Center) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Sign In", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.width(8.dp))
-                            Text("→", color = TextWhite, fontSize = 18.sp)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = TextWhite,
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Sign In", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.width(8.dp))
+                                Text("→", color = TextWhite, fontSize = 18.sp)
+                            }
                         }
                     }
                 }
@@ -212,20 +252,22 @@ fun MainLoginScreen(
                 Spacer(Modifier.height(20.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { onLoginSuccess() },
+                    OutlinedButton(onClick = { },
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, FieldBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg)) {
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg),
+                        enabled = !isLoading) {
                         Text("G", color = Color(0xFF4285F4), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.width(6.dp))
                         Text("Google", color = TextWhite, fontSize = 13.sp)
                     }
-                    OutlinedButton(onClick = { onLoginSuccess() },
+                    OutlinedButton(onClick = { },
                         modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         border = androidx.compose.foundation.BorderStroke(1.dp, FieldBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg)) {
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg),
+                        enabled = !isLoading) {
                         Text("", color = TextWhite, fontSize = 16.sp)
                         Spacer(Modifier.width(6.dp))
                         Text("Apple", color = TextWhite, fontSize = 13.sp)
@@ -238,7 +280,7 @@ fun MainLoginScreen(
                     Text("New to CineScope? ", color = TextGray, fontSize = 13.sp)
                     Text("Create an account", color = RedMain, fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { onGoToRegister() })
+                        modifier = Modifier.clickable(enabled = !isLoading) { onGoToRegister() })
                 }
 
                 Spacer(Modifier.height(32.dp))

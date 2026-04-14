@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +34,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -44,13 +44,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,9 +67,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.desarrollox.cinescopeproyect.data.local.entity.MovieEntity
 import com.desarrollox.cinescopeproyect.navigation.BottomRoute
 import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.MovieDetailViewModel
+import kotlinx.coroutines.launch
 
 private val BgMain = Color(0xFF120808)
 private val RedAccent = Color(0xFFE50914)
@@ -80,10 +89,57 @@ class DetallePelicula : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val titleExtra = intent.getStringExtra(EXTRA_TITLE).orEmpty()
+        val movieIdExtra = intent.getLongExtra(EXTRA_MOVIE_ID, -1L)
+        val color1Extra = intent.getLongExtra(EXTRA_COLOR1, 0xFF1A237E)
+        val color2Extra = intent.getLongExtra(EXTRA_COLOR2, 0xFF000051)
+        
+        val movie = MovieEntity(
+            id = movieIdExtra,
+            title = titleExtra,
+            year = 2014,
+            genre = "Sci-Fi",
+            duration = "2h 49m",
+            rating = 8.6f,
+            director = "Christopher Nolan",
+            synopsis = "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival.",
+            cast = "Matthew McConaughey, Anne Hathaway, Jessica Chastain",
+            color1 = color1Extra,
+            color2 = color2Extra
+        )
+        
         setContent {
             CineScopeProyectTheme {
+                val viewModel: MovieDetailViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(movie) {
+                    viewModel.loadMovie(movie)
+                }
+                
+                val snackbarHostState = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+                
+                LaunchedEffect(uiState.actionMessage) {
+                    uiState.actionMessage?.let {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(it)
+                            viewModel.clearMessage()
+                        }
+                    }
+                }
+                
                 DetallePeliculaScreen(
-                    detail = movieDetailForTitle(titleExtra),
+                    detail = movieDetailForTitle(titleExtra).copy(
+                        color1 = Color(movie.color1),
+                        color2 = Color(movie.color2)
+                    ),
+                    isFavorite = uiState.isFavorite,
+                    isInMyList = uiState.isInMyList,
+                    userRating = uiState.userRating,
+                    onToggleFavorite = { viewModel.toggleFavorite() },
+                    onToggleMyList = { viewModel.toggleMyList() },
+                    onMarkAsWatched = { viewModel.markAsWatched() },
+                    onRate = { stars, comment -> viewModel.rateMovie(stars, comment) },
                     onBack = { finish() }
                 )
             }
@@ -92,16 +148,29 @@ class DetallePelicula : ComponentActivity() {
 
     companion object {
         const val EXTRA_TITLE = "extra_movie_title"
+        const val EXTRA_MOVIE_ID = "extra_movie_id"
+        const val EXTRA_COLOR1 = "extra_color1"
+        const val EXTRA_COLOR2 = "extra_color2"
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetallePeliculaScreen(detail: MovieDetailUi, onBack: () -> Unit) {
+private fun DetallePeliculaScreen(
+    detail: MovieDetailUi,
+    isFavorite: Boolean = false,
+    isInMyList: Boolean = false,
+    userRating: Int = 0,
+    onToggleFavorite: () -> Unit = {},
+    onToggleMyList: () -> Unit = {},
+    onMarkAsWatched: () -> Unit = {},
+    onRate: (Int, String) -> Unit = { _, _ -> },
+    onBack: () -> Unit = {}
+) {
     val context = LocalContext.current
     var showCalificar by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var seenOn by remember { mutableStateOf(true) }
+    var seenOn by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -199,9 +268,22 @@ private fun DetallePeliculaScreen(detail: MovieDetailUi, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     DetailOutlineAction(Icons.Default.Star, "RATE", Modifier.weight(1f)) { showCalificar = true }
-                    DetailOutlineAction(Icons.Default.Favorite, "FAV", Modifier.weight(1f)) { }
-                    DetailOutlineAction(Icons.Default.Add, "LIST", Modifier.weight(1f)) { }
-                    DetailSeenAction(seenOn, Modifier.weight(1f)) { seenOn = !seenOn }
+                    DetailOutlineAction(
+                        icon = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        label = "FAV",
+                        modifier = Modifier.weight(1f),
+                        tintColor = if (isFavorite) RedAccent else RedAccent
+                    ) { onToggleFavorite() }
+                    DetailOutlineAction(
+                        icon = Icons.Default.Add,
+                        label = "LIST",
+                        modifier = Modifier.weight(1f),
+                        tintColor = if (isInMyList) RedAccent else RedAccent
+                    ) { onToggleMyList() }
+                    DetailSeenAction(seenOn, Modifier.weight(1f)) {
+                        seenOn = !seenOn
+                        if (seenOn) onMarkAsWatched()
+                    }
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -284,8 +366,12 @@ private fun DetallePeliculaScreen(detail: MovieDetailUi, onBack: () -> Unit) {
             ) {
                 CalificarSheetContent(
                     detail = detail,
+                    initialStars = userRating,
                     onDismiss = { showCalificar = false },
-                    onSave = { showCalificar = false }
+                    onSave = { stars, comment ->
+                        onRate(stars, comment)
+                        showCalificar = false
+                    }
                 )
             }
         }
@@ -297,17 +383,18 @@ private fun DetailOutlineAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     modifier: Modifier = Modifier,
+    tintColor: Color = RedAccent,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .border(1.dp, RedAccent, RoundedCornerShape(10.dp))
+            .border(1.dp, tintColor, RoundedCornerShape(10.dp))
             .clickable { onClick() }
             .padding(vertical = 12.dp, horizontal = 4.dp)
     ) {
-        Icon(icon, null, tint = RedAccent, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = tintColor, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(6.dp))
         Text(label, color = TextWhite, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
@@ -391,10 +478,11 @@ private fun CastItem(member: CastMemberUi) {
 @Composable
 private fun CalificarSheetContent(
     detail: MovieDetailUi,
+    initialStars: Int = 0,
     onDismiss: () -> Unit,
-    onSave: () -> Unit
+    onSave: (Int, String) -> Unit
 ) {
-    var stars by remember { mutableIntStateOf(4) }
+    var stars by remember { mutableIntStateOf(initialStars) }
     var comment by remember { mutableStateOf("") }
 
     Column(
@@ -532,7 +620,7 @@ private fun CalificarSheetContent(
         Spacer(Modifier.height(20.dp))
 
         Button(
-            onClick = onSave,
+            onClick = { onSave(stars, comment) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

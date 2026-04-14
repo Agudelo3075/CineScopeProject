@@ -1,5 +1,6 @@
 package com.desarrollox.cinescopeproyect
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,43 +22,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.desarrollox.cinescopeproyect.data.local.entity.WatchHistoryEntity
+import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.HistoryViewModel
 
-// ─── Colores (MISMOS que RegisterActivity) ────────────────────────────────────
 private val BgDark      = Color(0xFF120A0A)
 private val RedMain     = Color(0xFFE53935)
 private val RedDark     = Color(0xFFB71C1C)
 private val TextWhite   = Color(0xFFF5F5F5)
 private val TextGray    = Color(0xFF9E8E8E)
 private val CardBg      = Color(0xFF1E1414)
-
-// ─── Datos de ejemplo para el historial ──────────────────────────────────────
-private sealed class HistoryItem {
-    data class DateHeader(val date: String) : HistoryItem()
-    data class Movie(
-        val title: String,
-        val time: String,
-        val status: String,
-        val isCompleted: Boolean = true,
-        val progress: Float = 1f
-    ) : HistoryItem()
-}
-
-private val historyData = listOf(
-    HistoryItem.DateHeader("HOY"),
-    HistoryItem.Movie("Inception", "14:20", "Visto completamente", true, 1f),
-    HistoryItem.Movie("The Dark Knight", "11:05", "Restan 42 min", false, 0.55f),
-    HistoryItem.DateHeader("AYER"),
-    HistoryItem.Movie("Mad Max: Fury Road", "22:45", "Visto completamente", true, 1f),
-    HistoryItem.Movie("Pulp Fiction", "19:15", "Visto completamente", true, 1f),
-    HistoryItem.DateHeader("SEMANA PASADA"),
-    HistoryItem.Movie("Spider-Man: Across the Spider-Verse", "", "Visto el 15 Oct", true, 1f),
-    HistoryItem.Movie("Oppenheimer", "21:30", "Visto completamente", true, 1f)
 )
 
 class HistorialActivity : ComponentActivity() {
@@ -66,7 +49,16 @@ class HistorialActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
+                val viewModel: HistoryViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
                 HistorialScreen(
+                    movies = uiState.movies,
+                    series = uiState.series,
+                    selectedTab = uiState.selectedTab,
+                    isLoading = uiState.isLoading,
+                    onTabSelect = { viewModel.selectTab(it) },
+                    onRemoveFromHistory = { viewModel.removeFromHistory(it) },
                     onBack = { finish() }
                 )
             }
@@ -76,10 +68,21 @@ class HistorialActivity : ComponentActivity() {
 
 @Composable
 fun HistorialScreen(
+    movies: List<WatchHistoryEntity> = emptyList(),
+    series: List<WatchHistoryEntity> = emptyList(),
+    selectedTab: Int = 0,
+    isLoading: Boolean = false,
+    onTabSelect: (Int) -> Unit = {},
+    onRemoveFromHistory: (Long) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
-    var selectedCategory by remember { mutableStateOf(0) }
+    val context = LocalContext.current
     val categories = listOf("Películas", "Series", "Documentales", "Mi Lista")
+    val currentList = when (selectedTab) {
+        0 -> movies
+        1 -> series
+        else -> emptyList()
+    }
 
     Box(
         modifier = Modifier

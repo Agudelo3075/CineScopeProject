@@ -29,31 +29,33 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.desarrollox.cinescopeproyect.data.local.entity.MovieEntity
 import com.desarrollox.cinescopeproyect.navigation.BottomRoute
 import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
 import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.SearchViewModel
 
 private val BgMain = Color(0xFF120808)
 private val ChipBg = Color(0xFF2A1515)
@@ -62,55 +64,43 @@ private val TextWhite = Color(0xFFFFFFFF)
 private val TextGrey = Color(0xFFB3B3B3)
 private val GoldStar = Color(0xFFFFC107)
 
-private data class SearchResultItem(
-    val title: String,
-    val year: String,
-    val genre: String,
-    val rating: String,
-    val color1: Color,
-    val color2: Color
-)
-
-private val batmanResults = listOf(
-    SearchResultItem("The Batman", "2022", "Action", "8.4", Color(0xFF1A0A14), Color(0xFF2E1520)),
-    SearchResultItem("The Dark Knight", "2008", "Action", "9.0", Color(0xFF1A1A2E), Color(0xFF0D0D0D)),
-    SearchResultItem("Batman Begins", "2005", "Action", "8.2", Color(0xFF0A1A10), Color(0xFF152520)),
-    SearchResultItem("Batman Forever", "1995", "Action", "5.4", Color(0xFF201A30), Color(0xFF352040)),
-    SearchResultItem("Batman v Superman", "2016", "Action", "6.5", Color(0xFF151820), Color(0xFF252A35)),
-    SearchResultItem("The LEGO Batman Movie", "2017", "Animation", "7.3", Color(0xFF1A1520), Color(0xFF302040))
-)
-
 class Busqueda : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
-                BusquedaScreen(onBack = { finish() })
+                val viewModel: SearchViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                BusquedaScreen(
+                    query = uiState.query,
+                    selectedChip = uiState.selectedChip,
+                    results = uiState.results,
+                    isSearching = uiState.isSearching,
+                    hasSearched = uiState.hasSearched,
+                    onQueryChange = { viewModel.updateQuery(it) },
+                    onChipSelect = { viewModel.selectChip(it) },
+                    onBack = { finish() }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun BusquedaScreen(onBack: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    var query by remember { mutableStateOf("Batman") }
-    var chipIndex by remember { mutableIntStateOf(0) }
-    val chips = listOf("Movies", "TV Shows", "Actors", "Directors")
-
-    val filteredResults = remember(query, chipIndex) {
-        val q = query.trim()
-        val base = when (chipIndex) {
-            0 -> batmanResults
-            else -> batmanResults
-        }
-        if (q.isEmpty()) base
-        else base.filter {
-            it.title.contains(q, ignoreCase = true) ||
-                it.genre.contains(q, ignoreCase = true)
-        }
-    }
+private fun BusquedaScreen(
+    query: String = "",
+    selectedChip: String = "All",
+    results: List<MovieEntity> = emptyList(),
+    isSearching: Boolean = false,
+    hasSearched: Boolean = false,
+    onQueryChange: (String) -> Unit = {},
+    onChipSelect: (String) -> Unit = {},
+    onBack: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val chips = listOf("All", "Action", "Sci-Fi", "Drama", "Crime")
 
     Box(
         modifier = Modifier
@@ -148,7 +138,7 @@ private fun BusquedaScreen(onBack: () -> Unit) {
                         Spacer(Modifier.width(10.dp))
                         BasicTextField(
                             value = query,
-                            onValueChange = { query = it },
+                            onValueChange = onQueryChange,
                             textStyle = TextStyle(color = TextWhite, fontSize = 15.sp),
                             singleLine = true,
                             cursorBrush = SolidColor(RedAccent),
@@ -161,7 +151,7 @@ private fun BusquedaScreen(onBack: () -> Unit) {
                                 tint = RedAccent,
                                 modifier = Modifier
                                     .size(22.dp)
-                                    .clickable { query = "" }
+                                    .clickable { onQueryChange("") }
                             )
                         }
                     }
@@ -176,14 +166,14 @@ private fun BusquedaScreen(onBack: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                chips.forEachIndexed { index, label ->
-                    val selected = chipIndex == index
+                chips.forEach { label ->
+                    val selected = selectedChip == label
                     Text(
                         text = label,
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
                             .background(if (selected) RedAccent else ChipBg)
-                            .clickable { chipIndex = index }
+                            .clickable { onChipSelect(label) }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         color = TextWhite,
                         fontSize = 13.sp,
@@ -200,7 +190,7 @@ private fun BusquedaScreen(onBack: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Results for '$query'",
+                    if (hasSearched) "Results for '$query'" else "Search for movies",
                     color = TextWhite,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
@@ -208,41 +198,72 @@ private fun BusquedaScreen(onBack: () -> Unit) {
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    "${filteredResults.size} results",
-                    color = RedAccent,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            if (filteredResults.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                if (hasSearched) {
                     Text(
-                        "Sin resultados para \"$query\"",
-                        color = TextGrey,
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Center
+                        "${results.size} results",
+                        color = RedAccent,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 88.dp)
-                ) {
-                    items(filteredResults, key = { it.title }) { item ->
-                        SearchGridCell(item) { context.navigateToMovieDetail(item.title) }
+            }
+
+            when {
+                isSearching -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = RedAccent)
+                    }
+                }
+                results.isEmpty() && hasSearched -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No results found for \"$query\"",
+                            color = TextGrey,
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                results.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Start typing to search movies",
+                            color = TextGrey,
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                else -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 88.dp)
+                    ) {
+                        items(results, key = { it.id }) { movie ->
+                            SearchMovieCell(movie) { context.navigateToMovieDetail(movie.title) }
+                        }
                     }
                 }
             }
@@ -255,14 +276,14 @@ private fun BusquedaScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun SearchGridCell(item: SearchResultItem, onClick: () -> Unit) {
+private fun SearchMovieCell(movie: MovieEntity, onClick: () -> Unit) {
     Column(modifier = Modifier.clickable { onClick() }) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Brush.verticalGradient(listOf(item.color1, item.color2)))
+                .background(Brush.verticalGradient(listOf(Color(movie.color1), Color(movie.color2))))
         ) {
             Box(
                 modifier = Modifier
@@ -274,13 +295,13 @@ private fun SearchGridCell(item: SearchResultItem, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Star, null, tint = GoldStar, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(item.rating, color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("%.1f".format(movie.rating), color = TextWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            item.title,
+            movie.title,
             color = TextWhite,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
@@ -289,7 +310,7 @@ private fun SearchGridCell(item: SearchResultItem, onClick: () -> Unit) {
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "${item.year} • ${item.genre}",
+            "${movie.year} • ${movie.genre}",
             color = TextGrey,
             fontSize = 12.sp
         )

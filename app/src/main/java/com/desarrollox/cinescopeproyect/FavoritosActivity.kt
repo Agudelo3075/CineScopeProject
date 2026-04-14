@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -22,15 +23,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.desarrollox.cinescopeproyect.data.local.entity.FavoriteEntity
+import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
+import com.desarrollox.cinescopeproyect.ui.viewmodel.FavoritesViewModel
 
-// ─── Colores (MISMOS que RegisterActivity) ────────────────────────────────────
 private val BgDark      = Color(0xFF120A0A)
 private val RedMain     = Color(0xFFE53935)
 private val RedDark     = Color(0xFFB71C1C)
@@ -38,40 +44,22 @@ private val TextWhite   = Color(0xFFF5F5F5)
 private val TextGray    = Color(0xFF9E8E8E)
 private val CardBg      = Color(0xFF1E1414)
 
-// ─── Datos de ejemplo para favoritos ──────────────────────────────────────────
-private data class FavoriteMovie(
-    val title: String,
-    val year: String,
-    val rating: String,
-    val gradientStart: Color = Color(0xFF2D1B00),
-    val gradientEnd: Color = Color(0xFF1A0A2E)
-)
-
-private val favoriteMovies = listOf(
-    FavoriteMovie("Inception", "2010", "8.8", Color(0xFF2D1B00), Color(0xFF1A0A2E)),
-    FavoriteMovie("The Dark Knight", "2008", "9.0", Color(0xFF1A1A2E), Color(0xFF0D0D0D)),
-    FavoriteMovie("Interstellar", "2014", "8.7", Color(0xFF000510), Color(0xFF001530)),
-    FavoriteMovie("Dune: Part Two", "2024", "8.9", Color(0xFF1A1500), Color(0xFF2A2000)),
-    FavoriteMovie("Spider-Verse", "2023", "9.1", Color(0xFF1A0030), Color(0xFF300040)),
-    FavoriteMovie("Blade Runner 2049", "2017", "8.0", Color(0xFF0A1520), Color(0xFF152535)),
-    FavoriteMovie("Oppenheimer", "2023", "8.5", Color(0xFF2A0A0A), Color(0xFF3A1515)),
-    FavoriteMovie("Parasite", "2019", "8.6", Color(0xFF0A1A0A), Color(0xFF0F2A0F))
-)
-
-private val favoriteSeries = listOf(
-    FavoriteMovie("Stranger Things", "2016", "8.7", Color(0xFF1A0A2E), Color(0xFF2D1B00)),
-    FavoriteMovie("The Crown", "2016", "8.6", Color(0xFF2A0A1A), Color(0xFF3A1525)),
-    FavoriteMovie("Breaking Bad", "2008", "9.5", Color(0xFF0A2A1A), Color(0xFF0F3A25)),
-    FavoriteMovie("The Last of Us", "2023", "8.8", Color(0xFF1A2A0A), Color(0xFF253A0F))
-)
-
 class FavoritosActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
+                val viewModel: FavoritesViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
                 FavoritosScreen(
+                    movies = uiState.movies,
+                    series = uiState.series,
+                    selectedTab = uiState.selectedTab,
+                    isLoading = uiState.isLoading,
+                    onTabSelect = { viewModel.selectTab(it) },
+                    onRemoveFavorite = { viewModel.removeFavorite(it) },
                     onBack = { finish() }
                 )
             }
@@ -81,13 +69,17 @@ class FavoritosActivity : ComponentActivity() {
 
 @Composable
 fun FavoritosScreen(
+    movies: List<FavoriteEntity> = emptyList(),
+    series: List<FavoriteEntity> = emptyList(),
+    selectedTab: Int = 0,
+    isLoading: Boolean = false,
+    onTabSelect: (Int) -> Unit = {},
+    onRemoveFavorite: (Long) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    val context = LocalContext.current
     val tabs = listOf("Películas", "Series")
-
-    // Mostrar contenido según la pestaña seleccionada
-    val currentList = if (selectedTab == 0) favoriteMovies else favoriteSeries
+    val currentList = if (selectedTab == 0) movies else series
 
     Box(
         modifier = Modifier
@@ -97,7 +89,6 @@ fun FavoritosScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // ── TOP BAR (MISMO estilo que RegisterActivity) ──────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -134,13 +125,11 @@ fun FavoritosScreen(
                 }
             }
 
-            // ── HERO SECTION (MISMO diseño de cine que RegisterActivity) ─────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(190.dp)
             ) {
-                // Fondo con degradado
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -156,7 +145,6 @@ fun FavoritosScreen(
                         )
                 )
 
-                // Brillo radial
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -168,7 +156,6 @@ fun FavoritosScreen(
                         )
                 )
 
-                // Butacas (mismo diseño)
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -198,7 +185,6 @@ fun FavoritosScreen(
                     }
                 }
 
-                // Degradado inferior
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -207,7 +193,6 @@ fun FavoritosScreen(
                         .background(Brush.verticalGradient(listOf(Color.Transparent, BgDark)))
                 )
 
-                // Texto hero
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -227,7 +212,6 @@ fun FavoritosScreen(
                 }
             }
 
-            // ── TABS (Mismo estilo que RegisterActivity) ─────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -237,7 +221,7 @@ fun FavoritosScreen(
                 tabs.forEachIndexed { index, tab ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { selectedTab = index }
+                        modifier = Modifier.clickable { onTabSelect(index) }
                     ) {
                         Text(
                             text = tab,
@@ -256,18 +240,41 @@ fun FavoritosScreen(
                 }
             }
 
-            // ── GRID DE FAVORITOS ────────────────────────────────────────────────
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp)
-            ) {
-                items(currentList) { movie ->
-                    FavoriteMovieCard(movie)
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = RedMain)
+                }
+            } else if (currentList.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (selectedTab == 0) "No favorite movies yet" else "No favorite series yet",
+                        color = TextGray,
+                        fontSize = 15.sp
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp, top = 8.dp)
+                ) {
+                    items(currentList, key = { it.id }) { item ->
+                        FavoriteItemCard(
+                            item = item,
+                            onClick = { context.navigateToMovieDetail(item.title) },
+                            onRemove = { onRemoveFavorite(item.movieId) }
+                        )
+                    }
                 }
             }
         }
@@ -275,7 +282,11 @@ fun FavoritosScreen(
 }
 
 @Composable
-private fun FavoriteMovieCard(movie: FavoriteMovie) {
+private fun FavoriteItemCard(
+    item: FavoriteEntity,
+    onClick: () -> Unit = {},
+    onRemove: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -283,28 +294,28 @@ private fun FavoriteMovieCard(movie: FavoriteMovie) {
             .clip(RoundedCornerShape(12.dp))
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(movie.gradientStart, movie.gradientEnd)
+                    colors = listOf(Color(item.color1), Color(item.color2))
                 )
             )
+            .clickable { onClick() }
     ) {
-        // Icono de favorito en la esquina
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(10.dp)
                 .size(36.dp)
-                .background(Color(0x66000000), CircleShape),
+                .background(Color(0x66000000), CircleShape)
+                .clickable { onRemove() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                Icons.Default.Favorite,
-                contentDescription = null,
+                Icons.Default.Delete,
+                contentDescription = "Remove",
                 tint = RedMain,
                 modifier = Modifier.size(18.dp)
             )
         }
 
-        // Degradado inferior para el texto
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -317,7 +328,7 @@ private fun FavoriteMovieCard(movie: FavoriteMovie) {
                 .padding(12.dp)
         ) {
             Text(
-                text = movie.title,
+                text = item.title,
                 color = TextWhite,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
@@ -329,7 +340,6 @@ private fun FavoriteMovieCard(movie: FavoriteMovie) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Rating con estrella
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.Star,
@@ -339,16 +349,14 @@ private fun FavoriteMovieCard(movie: FavoriteMovie) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = movie.rating,
+                        text = "%.1f".format(item.rating),
                         color = TextWhite,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
-
-                // Año
                 Text(
-                    text = movie.year,
+                    text = item.year.toString(),
                     color = TextGray,
                     fontSize = 11.sp
                 )
