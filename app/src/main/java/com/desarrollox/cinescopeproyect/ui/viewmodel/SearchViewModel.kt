@@ -37,7 +37,6 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 Pair(query, chip)
             }.collectLatest { (query, chip) ->
                 _uiState.value = _uiState.value.copy(
-                    query = query,
                     selectedChip = chip,
                     isSearching = query.isNotBlank()
                 )
@@ -68,6 +67,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateQuery(newQuery: String) {
         _query.value = newQuery
+        _uiState.value = _uiState.value.copy(
+            query = newQuery,
+            isSearching = newQuery.isNotBlank()
+        )
     }
 
     fun selectChip(chip: String) {

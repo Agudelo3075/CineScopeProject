@@ -66,7 +66,8 @@ fun MiListaScreen(
     itemCount: Int = 0,
     isLoading: Boolean = false,
     onRemoveItem: (Long) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onMovieClick: (String) -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -235,7 +236,11 @@ fun MiListaScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(items, key = { it.id }) { item ->
-                    ListaMovieCard(item = item, onRemove = { onRemoveItem(item.id) })
+                    ListaMovieCard(
+                        item = item,
+                        onRemove = { onRemoveItem(item.id) },
+                        onClick = { onMovieClick(item.title) }
+                    )
                 }
             }
         }
@@ -243,11 +248,12 @@ fun MiListaScreen(
 }
 
 @Composable
-private fun ListaMovieCard(item: MyListEntity, onRemove: () -> Unit) {
+private fun ListaMovieCard(item: MyListEntity, onRemove: () -> Unit, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF1E1414), RoundedCornerShape(12.dp))
+            .clickable { onClick() }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -75,7 +75,8 @@ fun FavoritosScreen(
     isLoading: Boolean = false,
     onTabSelect: (Int) -> Unit = {},
     onRemoveFavorite: (Long) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onMovieClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val tabs = listOf("Películas", "Series")
@@ -271,7 +272,7 @@ fun FavoritosScreen(
                     items(currentList, key = { it.id }) { item ->
                         FavoriteItemCard(
                             item = item,
-                            onClick = { context.navigateToMovieDetail(item.title) },
+                            onClick = { onMovieClick(item.title) },
                             onRemove = { onRemoveFavorite(item.movieId) }
                         )
                     }

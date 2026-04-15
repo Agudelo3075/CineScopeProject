@@ -58,7 +58,7 @@ class RegisterActivity : ComponentActivity() {
                 LaunchedEffect(uiState.registerSuccess) {
                     if (uiState.registerSuccess) {
                         viewModel.resetRegisterSuccess()
-                        val intent = Intent(this@RegisterActivity, DashboardActivity::class.java).apply {
+                        val intent = Intent(this@RegisterActivity, MainActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         }
                         this@RegisterActivity.startActivity(intent)

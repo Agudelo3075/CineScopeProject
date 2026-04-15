@@ -14,7 +14,7 @@ import com.desarrollox.cinescopeproyect.data.local.entity.*
         MyListEntity::class,
         RatingEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class CineScopeDatabase : RoomDatabase() {

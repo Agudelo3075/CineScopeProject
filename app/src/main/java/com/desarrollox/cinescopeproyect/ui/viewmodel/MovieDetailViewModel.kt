@@ -30,17 +30,18 @@ class MovieDetailViewModel(application: Application) : AndroidViewModel(applicat
     val uiState: StateFlow<MovieDetailUiState> = _uiState.asStateFlow()
 
     fun loadMovie(movie: MovieEntity) {
-        _uiState.value = _uiState.value.copy(
-            movie = movie,
-            isLoading = true
-        )
-
         viewModelScope.launch {
+            val dbMovie = repository.getMovieByTitle(movie.title) ?: movie
+            _uiState.value = _uiState.value.copy(
+                movie = dbMovie,
+                isLoading = true
+            )
+            
             combine(
-                repository.isFavorite(movie.id),
-                repository.isInMyList(movie.id),
-                repository.isInHistory(movie.id),
-                repository.getRating(movie.id)
+                repository.isFavorite(dbMovie.id),
+                repository.isInMyList(dbMovie.id),
+                repository.isInHistory(dbMovie.id),
+                repository.getRating(dbMovie.id)
             ) { isFavorite, isInMyList, isInHistory, rating ->
                 _uiState.value.copy(
                     isFavorite = isFavorite,

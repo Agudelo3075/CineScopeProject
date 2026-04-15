@@ -6,11 +6,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RatingDao {
-    @Query("SELECT * FROM ratings WHERE movieId = :movieId LIMIT 1")
-    suspend fun getRatingByMovieId(movieId: Long): RatingEntity?
+    @Query("SELECT * FROM ratings WHERE movieId = :movieId AND userId = :userId LIMIT 1")
+    suspend fun getRatingByMovieId(movieId: Long, userId: Long): RatingEntity?
 
-    @Query("SELECT * FROM ratings WHERE movieId = :movieId")
-    fun getRatingByMovieIdFlow(movieId: Long): Flow<RatingEntity?>
+    @Query("SELECT * FROM ratings WHERE movieId = :movieId AND userId = :userId")
+    fun getRatingByMovieIdFlow(movieId: Long, userId: Long): Flow<RatingEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRating(rating: RatingEntity): Long
@@ -21,8 +21,8 @@ interface RatingDao {
     @Delete
     suspend fun deleteRating(rating: RatingEntity)
 
-    @Query("DELETE FROM ratings WHERE movieId = :movieId")
-    suspend fun deleteRatingByMovieId(movieId: Long)
+    @Query("DELETE FROM ratings WHERE movieId = :movieId AND userId = :userId")
+    suspend fun deleteRatingByMovieId(movieId: Long, userId: Long)
 
     @Query("SELECT AVG(stars) FROM ratings")
     fun getAverageRating(): Flow<Float?>

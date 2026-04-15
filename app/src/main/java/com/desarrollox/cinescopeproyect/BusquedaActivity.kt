@@ -97,7 +97,8 @@ private fun BusquedaScreen(
     hasSearched: Boolean = false,
     onQueryChange: (String) -> Unit = {},
     onChipSelect: (String) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onMovieClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val chips = listOf("All", "Action", "Sci-Fi", "Drama", "Crime")
@@ -261,16 +262,15 @@ private fun BusquedaScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 88.dp)
                     ) {
-                        items(results, key = { it.id }) { movie ->
-                            SearchMovieCell(movie) { context.navigateToMovieDetail(movie.title) }
+                        items(results, key = { it.id!! }) { movie ->
+                            SearchMovieCell(movie) { onMovieClick(movie.title) }
                         }
                     }
                 }
             }
         }
 
-        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-            CineScopeBottomBar(context = context, selected = BottomRoute.Inicio)
+            }
         }
     }
 }
@@ -285,6 +285,15 @@ private fun SearchMovieCell(movie: MovieEntity, onClick: () -> Unit) {
                 .clip(RoundedCornerShape(12.dp))
                 .background(Brush.verticalGradient(listOf(Color(movie.color1), Color(movie.color2))))
         ) {
+            if (movie.imageUrl.isNotEmpty()) {
+                coil.compose.AsyncImage(
+                    model = movie.imageUrl,
+                    contentDescription = movie.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
+            
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)

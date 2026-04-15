@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class MyListEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: Long,
     val movieId: Long,
     val title: String,
     val matchPercentage: Int,

@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class RatingEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
+    val userId: Long,
     val movieId: Long,
     val movieTitle: String,
     val stars: Int,

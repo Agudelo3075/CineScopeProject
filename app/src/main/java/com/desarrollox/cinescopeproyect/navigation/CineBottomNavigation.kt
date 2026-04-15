@@ -1,18 +1,8 @@
 package com.desarrollox.cinescopeproyect.navigation
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Favorite
@@ -23,6 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,18 +21,39 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 private val BgNavBar = Color(0xFF111111)
 private val BorderNav = Color(0xFF2A2A2A)
 private val RedMain = Color(0xFFE50914)
 private val TextGray = Color(0xFF9E9E9E)
 
+enum class BottomBarItem(
+    val route: String,
+    val icon: ImageVector,
+    val label: String
+) {
+    Inicio(Screen.Dashboard.route, Icons.Default.Home, "Inicio"),
+    Historial(Screen.Historial.route, Icons.Default.History, "Historial"),
+    MiLista(Screen.MiLista.route, Icons.AutoMirrored.Filled.ViewList, "Mi Lista"),
+    Favoritos(Screen.Favoritos.route, Icons.Default.Favorite, "Favoritos"),
+    Perfil(Screen.Perfil.route, Icons.Default.Person, "Perfil")
+}
+
 @Composable
 fun CineScopeBottomBar(
-    context: Context,
-    selected: BottomRoute,
+    navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // No mostrar la barra si estamos en Login o Register
+    if (currentRoute == Screen.Login.route || currentRoute == Screen.Register.route) {
+        return
+    }
+
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -56,43 +68,31 @@ fun CineScopeBottomBar(
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                BottomBarItem(
-                    icon = Icons.Default.Home,
-                    label = "Inicio",
-                    selected = selected == BottomRoute.Inicio,
-                    onClick = { context.navigateToBottomRoute(BottomRoute.Inicio) }
-                )
-                BottomBarItem(
-                    icon = Icons.Default.History,
-                    label = "Historial",
-                    selected = selected == BottomRoute.Historial,
-                    onClick = { context.navigateToBottomRoute(BottomRoute.Historial) }
-                )
-                BottomBarItem(
-                    icon = Icons.AutoMirrored.Filled.ViewList,
-                    label = "Mi Lista",
-                    selected = selected == BottomRoute.MiLista,
-                    onClick = { context.navigateToBottomRoute(BottomRoute.MiLista) }
-                )
-                BottomBarItem(
-                    icon = Icons.Default.Favorite,
-                    label = "Favoritos",
-                    selected = selected == BottomRoute.Favoritos,
-                    onClick = { context.navigateToBottomRoute(BottomRoute.Favoritos) }
-                )
-                BottomBarItem(
-                    icon = Icons.Default.Person,
-                    label = "Perfil",
-                    selected = selected == BottomRoute.Perfil,
-                    onClick = { context.navigateToBottomRoute(BottomRoute.Perfil) }
-                )
+                BottomBarItem.values().forEach { item ->
+                    BottomBarIcon(
+                        icon = item.icon,
+                        label = item.label,
+                        selected = currentRoute == item.route,
+                        onClick = {
+                            if (currentRoute != item.route) {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun BottomBarItem(
+private fun BottomBarIcon(
     icon: ImageVector,
     label: String,
     selected: Boolean,

@@ -31,10 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrollox.cinescopeproyect.data.local.entity.MovieEntity
-import com.desarrollox.cinescopeproyect.navigation.BottomRoute
 import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
-import com.desarrollox.cinescopeproyect.navigation.navigateToBusqueda
-import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
 import com.desarrollox.cinescopeproyect.ui.viewmodel.HomeViewModel
 
@@ -70,7 +67,9 @@ fun DasboardScreen(
     isLoading: Boolean = false,
     popularMovies: List<MovieEntity> = emptyList(),
     topRatedMovies: List<MovieEntity> = emptyList(),
-    newReleases: List<MovieEntity> = emptyList()
+    newReleases: List<MovieEntity> = emptyList(),
+    onNavigateToBusqueda: () -> Unit = {},
+    onNavigateToMovieDetail: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -106,7 +105,7 @@ fun DasboardScreen(
                 Box(
                     modifier = Modifier
                         .background(CardDark, RoundedCornerShape(20.dp))
-                        .clickable { context.navigateToBusqueda() }
+                        .clickable { onNavigateToBusqueda() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -176,7 +175,10 @@ fun DasboardScreen(
                         .align(Alignment.TopEnd)
                         .padding(top = 40.dp, end = 40.dp)
                         .background(
-                            Brush.radialGradient(listOf(Color(0xFF2A5AAA), Color(0xFF0A1A40))),
+                                    Color(0xFF2A5AAA),
+                                    Color(0xFF0A1A40)
+                                )
+                            ),
                             CircleShape
                         )
                 )
@@ -237,7 +239,7 @@ fun DasboardScreen(
                                     Brush.horizontalGradient(listOf(RedDark, RedMain)),
                                     RoundedCornerShape(24.dp)
                                 )
-                                .clickable { context.navigateToMovieDetail("Interstellar") }
+                                .clickable { onNavigateToMovieDetail("Interstellar") }
                                 .padding(horizontal = 20.dp, vertical = 10.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -281,7 +283,7 @@ fun DasboardScreen(
                 ) {
                     popularMovies.forEach { movie ->
                         MovieCardEntity(movie, width = 130, height = 190) {
-                            context.navigateToMovieDetail(movie.title)
+                            onNavigateToMovieDetail(movie.title)
                         }
                     }
                 }
@@ -297,7 +299,7 @@ fun DasboardScreen(
                 ) {
                     topRatedMovies.forEach { movie ->
                         MovieCardEntity(movie, width = 130, height = 190) {
-                            context.navigateToMovieDetail(movie.title)
+                            onNavigateToMovieDetail(movie.title)
                         }
                     }
                 }
@@ -313,17 +315,13 @@ fun DasboardScreen(
                 ) {
                     newReleases.forEach { movie ->
                         MovieCardEntity(movie, width = 130, height = 190, isNew = movie.isNewRelease) {
-                            context.navigateToMovieDetail(movie.title)
+                            onNavigateToMovieDetail(movie.title)
                         }
                     }
                 }
             }
 
             Spacer(Modifier.height(16.dp))
-        }
-
-        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-            CineScopeBottomBar(context = context, selected = BottomRoute.Inicio)
         }
     }
 }
@@ -431,6 +429,15 @@ fun MovieCardEntity(movie: MovieEntity, width: Int, height: Int, isNew: Boolean 
                 .background(Brush.verticalGradient(listOf(Color(movie.color1), Color(movie.color2))))
                 .clickable { onClick() }
         ) {
+            if (movie.imageUrl.isNotEmpty()) {
+                coil.compose.AsyncImage(
+                    model = movie.imageUrl,
+                    contentDescription = movie.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
+            
             Box(
                 modifier = Modifier
                     .fillMaxSize()

@@ -1,97 +1,76 @@
 package com.desarrollox.cinescopeproyect.navigation
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import com.desarrollox.cinescopeproyect.Busqueda
-import com.desarrollox.cinescopeproyect.DashboardActivity
-import com.desarrollox.cinescopeproyect.DetallePelicula
-import com.desarrollox.cinescopeproyect.FavoritosActivity
-import com.desarrollox.cinescopeproyect.HistorialActivity
-import com.desarrollox.cinescopeproyect.MiListaActivity
-import com.desarrollox.cinescopeproyect.PerfilActivity
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.desarrollox.cinescopeproyect.*
+
+/** Rutas de navegación de la aplicación. */
+sealed class Screen(val route: String) {
+    object Login : Screen("login")
+    object Register : Screen("register")
+    object Dashboard : Screen("dashboard")
+    object Busqueda : Screen("busqueda")
+    object Detalle : Screen("detalle/{title}") {
+        fun createRoute(title: String) = "detalle/$title"
+    }
+    object Historial : Screen("historial")
+    object MiLista : Screen("mi_lista")
+    object Favoritos : Screen("favoritos")
+    object Perfil : Screen("perfil")
+}
 
 /** Destinos de la barra inferior principal. */
-enum class BottomRoute {
-    Inicio,
-    Historial,
-    MiLista,
-    Favoritos,
-    Perfil
+enum class BottomRoute(val route: String) {
+    Inicio(Screen.Dashboard.route),
+    Historial(Screen.Historial.route),
+    MiLista(Screen.MiLista.route),
+    Favoritos(Screen.Favoritos.route),
+    Perfil(Screen.Perfil.route)
 }
 
-// ─── Intents reutilizables ───────────────────────────────────────────────────
-
-fun dashboardIntent(context: Context): Intent =
-    Intent(context, DashboardActivity::class.java).apply {
-        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-    }
-
-fun busquedaIntent(context: Context): Intent =
-    Intent(context, Busqueda::class.java)
-
-fun detallePeliculaIntent(context: Context, movieTitle: String): Intent =
-    Intent(context, DetallePelicula::class.java).putExtra(
-        DetallePelicula.EXTRA_TITLE,
-        movieTitle
-    )
-
-fun historialIntent(context: Context): Intent =
-    Intent(context, HistorialActivity::class.java)
-
-fun miListaIntent(context: Context): Intent =
-    Intent(context, MiListaActivity::class.java)
-
-fun favoritosIntent(context: Context): Intent =
-    Intent(context, FavoritosActivity::class.java)
-
-fun perfilIntent(context: Context): Intent =
-    Intent(context, PerfilActivity::class.java)
-
-private fun secondaryIntent(context: Context, target: BottomRoute): Intent = when (target) {
-    BottomRoute.Inicio -> Intent(context, DashboardActivity::class.java)
-    BottomRoute.Historial -> historialIntent(context)
-    BottomRoute.MiLista -> miListaIntent(context)
-    BottomRoute.Favoritos -> favoritosIntent(context)
-    BottomRoute.Perfil -> perfilIntent(context)
-}
-
-// ─── Navegación desde Context (activities secundarias) ───────────────────────
-
-/** Abre la pantalla de búsqueda. */
-fun Context.navigateToBusqueda() {
-    startActivity(busquedaIntent(this))
-}
-
-/** Abre el detalle de una película por título (catálogo en `movieDetailForTitle`). */
-fun Context.navigateToMovieDetail(movieTitle: String) {
-    startActivity(detallePeliculaIntent(this, movieTitle))
-}
-
-/**
- * Navega según la pestaña inferior.
- * - Desde el dashboard: abre la pantalla sin cerrar el dashboard.
- * - Desde otra pantalla: abre el destino y cierra la actual (excepto Inicio, que usa CLEAR_TOP).
- */
-fun Context.navigateToBottomRoute(target: BottomRoute) {
-    val activity = this as? Activity ?: return
-    when {
-        target == BottomRoute.Inicio && activity is DashboardActivity -> return
-        target == BottomRoute.Historial && activity is HistorialActivity -> return
-        target == BottomRoute.MiLista && activity is MiListaActivity -> return
-        target == BottomRoute.Favoritos && activity is FavoritosActivity -> return
-        target == BottomRoute.Perfil && activity is PerfilActivity -> return
-    }
-    when {
-        target == BottomRoute.Inicio -> {
-            activity.startActivity(dashboardIntent(activity))
+@Composable
+fun CineScopeNavHost(
+    navController: NavHostController,
+    startDestination: String = Screen.Login.route
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        composable(Screen.Login.route) {
+            // Se llamará desde MainActivity
         }
-        activity is DashboardActivity -> {
-            activity.startActivity(secondaryIntent(activity, target))
+        composable(Screen.Register.route) {
+            // Se llamará desde MainActivity
         }
-        else -> {
-            activity.startActivity(secondaryIntent(activity, target))
-            activity.finish()
+        composable(Screen.Dashboard.route) {
+            // Contenido del Dashboard
+        }
+        composable(Screen.Busqueda.route) {
+            // Contenido de Búsqueda
+        }
+        composable(
+            route = Screen.Detalle.route,
+            arguments = listOf(navArgument("title") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val title = backStackEntry.arguments?.getString("title") ?: ""
+            // Contenido de Detalle
+        }
+        composable(Screen.Historial.route) {
+            // Contenido de Historial
+        }
+        composable(Screen.MiLista.route) {
+            // Contenido de Mi Lista
+        }
+        composable(Screen.Favoritos.route) {
+            // Contenido de Favoritos
+        }
+        composable(Screen.Perfil.route) {
+            // Contenido de Perfil
         }
     }
 }

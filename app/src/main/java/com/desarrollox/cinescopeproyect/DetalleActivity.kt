@@ -133,8 +133,10 @@ class DetallePelicula : ComponentActivity() {
                         color1 = Color(movie.color1),
                         color2 = Color(movie.color2)
                     ),
+                    movie = uiState.movie,
                     isFavorite = uiState.isFavorite,
                     isInMyList = uiState.isInMyList,
+                    isInHistory = uiState.isInHistory,
                     userRating = uiState.userRating,
                     onToggleFavorite = { viewModel.toggleFavorite() },
                     onToggleMyList = { viewModel.toggleMyList() },
@@ -156,10 +158,12 @@ class DetallePelicula : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetallePeliculaScreen(
+fun DetallePeliculaScreen(
     detail: MovieDetailUi,
+    movie: MovieEntity? = null,
     isFavorite: Boolean = false,
     isInMyList: Boolean = false,
+    isInHistory: Boolean = false,
     userRating: Int = 0,
     onToggleFavorite: () -> Unit = {},
     onToggleMyList: () -> Unit = {},
@@ -170,7 +174,7 @@ private fun DetallePeliculaScreen(
     val context = LocalContext.current
     var showCalificar by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var seenOn by remember { mutableStateOf(false) }
+    var seenOn by remember(isInHistory) { mutableStateOf(isInHistory) }
 
     Box(
         modifier = Modifier
@@ -218,15 +222,35 @@ private fun DetallePeliculaScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .height(300.dp) // Aumentamos la altura para ver mejor el póster
+                        .padding(horizontal = 0.dp) // Quitamos padding para efecto inmersivo
+                        .clip(RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp))
                 ) {
+                    // Fondo de gradiente por defecto
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Brush.verticalGradient(listOf(detail.color1, detail.color2)))
                     )
+                    
+                    // Imagen Real de la API
+                    val backdropUrl = movie?.imageUrl ?: detail.imageUrl
+                    if (backdropUrl.isNotEmpty()) {
+                        coil.compose.AsyncImage(
+                            model = backdropUrl,
+                            contentDescription = detail.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+
+                    // Capa de penumbra inferior para que los textos se lean
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Brush.verticalGradient(listOf(Color.Transparent, BgMain.copy(alpha = 0.7f))))
+                    )
+
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -278,7 +302,8 @@ private fun DetallePeliculaScreen(
                         icon = Icons.Default.Add,
                         label = "LIST",
                         modifier = Modifier.weight(1f),
-                        tintColor = if (isInMyList) RedAccent else RedAccent
+                        isSelected = isInMyList,
+                        tintColor = RedAccent
                     ) { onToggleMyList() }
                     DetailSeenAction(seenOn, Modifier.weight(1f)) {
                         seenOn = !seenOn
@@ -339,7 +364,6 @@ private fun DetallePeliculaScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
-            CineScopeBottomBar(context = context, selected = BottomRoute.Inicio)
         }
 
         if (showCalificar) {
@@ -383,20 +407,23 @@ private fun DetailOutlineAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     tintColor: Color = RedAccent,
     onClick: () -> Unit
 ) {
+    val bg = if (isSelected) tintColor else Color.Transparent
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .border(1.dp, tintColor, RoundedCornerShape(10.dp))
+            .background(bg)
             .clickable { onClick() }
             .padding(vertical = 12.dp, horizontal = 4.dp)
     ) {
-        Icon(icon, null, tint = tintColor, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = if (isSelected) TextWhite else tintColor, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(6.dp))
-        Text(label, color = TextWhite, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = if (isSelected) TextWhite else tintColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 

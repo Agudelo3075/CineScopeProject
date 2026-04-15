@@ -6,17 +6,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MyListDao {
-    @Query("SELECT * FROM my_list ORDER BY addedAt DESC")
-    fun getAllItems(): Flow<List<MyListEntity>>
+    @Query("SELECT * FROM my_list WHERE userId = :userId ORDER BY addedAt DESC")
+    fun getAllItems(userId: Long): Flow<List<MyListEntity>>
 
-    @Query("SELECT * FROM my_list WHERE type = :type ORDER BY addedAt DESC")
-    fun getItemsByType(type: String): Flow<List<MyListEntity>>
+    @Query("SELECT * FROM my_list WHERE userId = :userId AND type = :type ORDER BY addedAt DESC")
+    fun getItemsByType(userId: Long, type: String): Flow<List<MyListEntity>>
 
-    @Query("SELECT * FROM my_list WHERE movieId = :movieId LIMIT 1")
-    suspend fun getItemByMovieId(movieId: Long): MyListEntity?
+    @Query("SELECT * FROM my_list WHERE userId = :userId AND movieId = :movieId LIMIT 1")
+    suspend fun getItemByMovieId(userId: Long, movieId: Long): MyListEntity?
 
-    @Query("SELECT EXISTS(SELECT 1 FROM my_list WHERE movieId = :movieId)")
-    fun isInMyList(movieId: Long): Flow<Boolean>
+    @Query("SELECT EXISTS(SELECT 1 FROM my_list WHERE userId = :userId AND movieId = :movieId)")
+    fun isInMyList(userId: Long, movieId: Long): Flow<Boolean>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: MyListEntity): Long
@@ -24,9 +24,9 @@ interface MyListDao {
     @Delete
     suspend fun deleteItem(item: MyListEntity)
 
-    @Query("DELETE FROM my_list WHERE movieId = :movieId")
-    suspend fun deleteItemByMovieId(movieId: Long)
+    @Query("DELETE FROM my_list WHERE userId = :userId AND movieId = :movieId")
+    suspend fun deleteItemByMovieId(userId: Long, movieId: Long)
 
-    @Query("SELECT COUNT(*) FROM my_list")
-    fun getItemCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM my_list WHERE userId = :userId")
+    fun getItemCount(userId: Long): Flow<Int>
 }

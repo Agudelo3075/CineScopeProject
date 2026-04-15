@@ -1,48 +1,24 @@
 package com.desarrollox.cinescopeproyect
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
+import com.desarrollox.cinescopeproyect.navigation.Screen
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
-import com.desarrollox.cinescopeproyect.ui.viewmodel.AuthViewModel
-
-private val BgDark      = Color(0xFF120A0A)
-private val FieldBg     = Color(0xFF1E1414)
-private val FieldBorder = Color(0xFF2E2020)
-private val RedMain     = Color(0xFFE53935)
-private val RedDark     = Color(0xFFB71C1C)
-private val TextWhite   = Color(0xFFF5F5F5)
-private val TextGray    = Color(0xFF9E8E8E)
+import com.desarrollox.cinescopeproyect.ui.viewmodel.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,260 +26,215 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CineScopeProyectTheme {
+                CineScopeApp()
+            }
+        }
+    }
+}
+
+@Composable
+fun CineScopeApp() {
+    val navController = rememberNavController()
+    
+    Scaffold(
+        bottomBar = { CineScopeBottomBar(navController) }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Login.route,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            // LOGIN
+            composable(Screen.Login.route) {
                 val viewModel: AuthViewModel = viewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 
                 LaunchedEffect(uiState.loginSuccess) {
                     if (uiState.loginSuccess) {
                         viewModel.resetLoginSuccess()
-                        this@MainActivity.startActivity(Intent(this@MainActivity, DashboardActivity::class.java))
-                        this@MainActivity.finish()
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     }
                 }
                 
                 MainLoginScreen(
                     isLoading = uiState.isLoading,
                     error = uiState.error,
-                    onLogin = { email, password -> viewModel.login(email, password) },
-                    onGoToRegister = {
-                        this@MainActivity.startActivity(Intent(this@MainActivity, RegisterActivity::class.java))
-                    },
+                    onLogin = { e, p -> viewModel.login(e, p) },
+                    onGoToRegister = { navController.navigate(Screen.Register.route) },
                     onClearError = { viewModel.clearError() }
                 )
             }
-        }
-    }
-}
 
-@Composable
-fun MainLoginScreen(
-    isLoading: Boolean = false,
-    error: String? = null,
-    onLogin: (String, String) -> Unit = { _, _ -> },
-    onGoToRegister: () -> Unit = {},
-    onClearError: () -> Unit = {}
-) {
-    var email           by remember { mutableStateOf("") }
-    var password        by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var rememberDevice  by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxSize().background(BgDark)) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)
-            ) {
-                Box(
-                    modifier = Modifier.size(32.dp).background(RedMain, RoundedCornerShape(6.dp)),
-                    contentAlignment = Alignment.Center
-                ) { Text("🎬", fontSize = 16.sp) }
-                Spacer(Modifier.width(10.dp))
-                Text("CineScope", color = TextWhite, fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold, fontFamily = FontFamily.SansSerif)
+            // REGISTER
+            composable(Screen.Register.route) {
+                val viewModel: AuthViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(uiState.registerSuccess) {
+                    if (uiState.registerSuccess) {
+                        viewModel.resetRegisterSuccess()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Register.route) { inclusive = true }
+                        }
+                    }
+                }
+                
+                RegisterScreen(
+                    isLoading = uiState.isLoading,
+                    error = uiState.error,
+                    onRegister = { n, e, p, c -> viewModel.register(n, e, p, c) },
+                    onGoToLogin = { navController.popBackStack() },
+                    onClearError = { viewModel.clearError() }
+                )
             }
 
-            Box(modifier = Modifier.fillMaxWidth().height(220.dp)) {
-                Box(modifier = Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(listOf(
-                        Color(0xFF1A0505), Color(0xFF3D0A0A),
-                        Color(0xFF6B1010), Color(0xFF4A0D0D), Color(0xFF1A0505)
-                    ))
-                ))
-                Box(modifier = Modifier.fillMaxSize().background(
-                    Brush.radialGradient(
-                        listOf(Color(0x99FFFFFF), Color(0x44AAAAAA), Color(0x00000000)),
-                        radius = 220f
-                    )
-                ))
-                Column(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
-                    repeat(4) { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .padding(horizontal = (row * 8).dp).padding(bottom = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            repeat(10 - row) {
-                                Box(modifier = Modifier.width(24.dp).height(14.dp).background(
-                                    Color(0xFF8B0000).copy(alpha = 0.7f + row * 0.1f),
-                                    RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                                ))
-                            }
-                        }
+            // DASHBOARD
+            composable(Screen.Dashboard.route) {
+                val viewModel: HomeViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                DasboardScreen(
+                    isLoading = uiState.isLoading,
+                    popularMovies = uiState.popularMovies,
+                    topRatedMovies = uiState.topRatedMovies,
+                    newReleases = uiState.newReleases,
+                    onNavigateToBusqueda = { navController.navigate(Screen.Busqueda.route) },
+                    onNavigateToMovieDetail = { title -> 
+                        navController.navigate(Screen.Detalle.createRoute(title))
                     }
-                }
-                Box(modifier = Modifier.fillMaxWidth().height(80.dp).align(Alignment.BottomCenter)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, BgDark))))
-                Column(modifier = Modifier.align(Alignment.BottomStart).padding(start = 24.dp, bottom = 20.dp)) {
-                    Text("Welcome Back", color = TextWhite, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    Text("Ready for your next premiere?", color = TextGray, fontSize = 13.sp)
-                }
+                )
             }
 
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 8.dp)) {
-
-                if (error != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = RedDark.copy(alpha = 0.3f)),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(error, color = TextWhite, fontSize = 13.sp)
-                            Text("✕", color = TextWhite, modifier = Modifier.clickable { onClearError() })
-                        }
+            // BUSQUEDA
+            composable(Screen.Busqueda.route) {
+                val viewModel: SearchViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                BusquedaScreen(
+                    query = uiState.query,
+                    selectedChip = uiState.selectedChip,
+                    results = uiState.results,
+                    isSearching = uiState.isSearching,
+                    hasSearched = uiState.hasSearched,
+                    onQueryChange = { viewModel.updateQuery(it) },
+                    onChipSelect = { viewModel.selectChip(it) },
+                    onBack = { navController.popBackStack() },
+                    onMovieClick = { title ->
+                        navController.navigate(Screen.Detalle.createRoute(title))
                     }
-                }
-
-                Text("EMAIL ADDRESS", color = TextGray, fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-                    modifier = Modifier.padding(bottom = 8.dp))
-                OutlinedTextField(
-                    value = email, onValueChange = { email = it },
-                    placeholder = { Text("name@example.com", color = TextGray.copy(alpha = 0.6f), fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Email, null, tint = TextGray) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors(),
-                    enabled = !isLoading
                 )
+            }
 
-                Spacer(Modifier.height(16.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text("PASSWORD", color = TextGray, fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
-                    Text("Forgot?", color = RedMain, fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold, modifier = Modifier.clickable { })
+            // DETALLE
+            composable(
+                route = Screen.Detalle.route,
+                arguments = listOf(navArgument("title") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val title = backStackEntry.arguments?.getString("title") ?: ""
+                val viewModel: MovieDetailViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(title) {
+                    // Aquí se cargaría la película según el título o ID
+                    // Por ahora el ViewModel usa el título que recibe
                 }
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = password, onValueChange = { password = it },
-                    placeholder = { Text("Enter your password", color = TextGray.copy(alpha = 0.6f), fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = TextGray) },
-                    trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                            Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                null, tint = TextGray)
-                        }
-                    },
-                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp), colors = loginFieldColors(),
-                    enabled = !isLoading
+                
+                DetallePeliculaScreen(
+                    detail = movieDetailForTitle(title),
+                    movie = uiState.movie,
+                    isFavorite = uiState.isFavorite,
+                    isInMyList = uiState.isInMyList,
+                    isInHistory = uiState.isInHistory,
+                    userRating = uiState.userRating,
+                    onToggleFavorite = { viewModel.toggleFavorite() },
+                    onToggleMyList = { viewModel.toggleMyList() },
+                    onMarkAsWatched = { viewModel.markAsWatched() },
+                    onRate = { stars, comment -> viewModel.rateMovie(stars, comment) },
+                    onBack = { navController.popBackStack() }
                 )
+            }
 
-                Spacer(Modifier.height(14.dp))
+            // HISTORIAL
+            composable(Screen.Historial.route) {
+                val viewModel: HistoryViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                HistorialScreen(
+                    movies = uiState.movies,
+                    series = uiState.series,
+                    selectedTab = uiState.selectedTab,
+                    isLoading = uiState.isLoading,
+                    onTabSelect = { viewModel.selectTab(it) },
+                    onBack = { navController.popBackStack() },
+                    onMovieClick = { title ->
+                        navController.navigate(Screen.Detalle.createRoute(title))
+                    }
+                )
+            }
 
-                Row(verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(enabled = !isLoading) { rememberDevice = !rememberDevice }) {
-                    Checkbox(checked = rememberDevice, onCheckedChange = { rememberDevice = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = RedMain, uncheckedColor = TextGray, checkmarkColor = TextWhite),
-                        enabled = !isLoading)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Remember this device", color = TextGray, fontSize = 13.sp)
-                }
+            // MI LISTA
+            composable(Screen.MiLista.route) {
+                val viewModel: MyListViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                MiListaScreen(
+                    items = uiState.items,
+                    itemCount = uiState.itemCount,
+                    isLoading = uiState.isLoading,
+                    onRemoveItem = { viewModel.removeFromList(it) },
+                    onBack = { navController.popBackStack() },
+                    onMovieClick = { title ->
+                        navController.navigate(Screen.Detalle.createRoute(title))
+                    }
+                )
+            }
 
-                Spacer(Modifier.height(20.dp))
+            // FAVORITOS
+            composable(Screen.Favoritos.route) {
+                val viewModel: FavoritesViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                FavoritosScreen(
+                    movies = uiState.movies,
+                    series = uiState.series,
+                    selectedTab = uiState.selectedTab,
+                    isLoading = uiState.isLoading,
+                    onTabSelect = { viewModel.selectTab(it) },
+                    onRemoveFavorite = { viewModel.removeFavorite(it) },
+                    onBack = { navController.popBackStack() },
+                    onMovieClick = { title ->
+                        navController.navigate(Screen.Detalle.createRoute(title))
+                    }
+                )
+            }
 
-                Button(
-                    onClick = { onLogin(email, password) },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues(),
-                    enabled = !isLoading
-                ) {
-                    Box(modifier = Modifier.fillMaxSize()
-                        .background(Brush.horizontalGradient(listOf(RedDark, RedMain)), RoundedCornerShape(14.dp)),
-                        contentAlignment = Alignment.Center) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = TextWhite,
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Sign In", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.width(8.dp))
-                                Text("→", color = TextWhite, fontSize = 18.sp)
-                            }
+            // PERFIL
+            composable(Screen.Perfil.route) {
+                val viewModel: ProfileViewModel = viewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                
+                LaunchedEffect(uiState.logoutSuccess) {
+                    if (uiState.logoutSuccess) {
+                        viewModel.resetLogoutSuccess()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 }
-
-                Spacer(Modifier.height(20.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = FieldBorder)
-                    Text("  OR  ", color = TextGray, fontSize = 12.sp, letterSpacing = 1.sp)
-                    HorizontalDivider(modifier = Modifier.weight(1f), color = FieldBorder)
-                }
-
-                Spacer(Modifier.height(20.dp))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, FieldBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg),
-                        enabled = !isLoading) {
-                        Text("G", color = Color(0xFF4285F4), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Google", color = TextWhite, fontSize = 13.sp)
-                    }
-                    OutlinedButton(onClick = { },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, FieldBorder),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = FieldBg),
-                        enabled = !isLoading) {
-                        Text("", color = TextWhite, fontSize = 16.sp)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Apple", color = TextWhite, fontSize = 13.sp)
-                    }
-                }
-
-                Spacer(Modifier.height(28.dp))
-
-                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                    Text("New to CineScope? ", color = TextGray, fontSize = 13.sp)
-                    Text("Create an account", color = RedMain, fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable(enabled = !isLoading) { onGoToRegister() })
-                }
-
-                Spacer(Modifier.height(32.dp))
+                
+                PerfilScreen(
+                    userName = uiState.user?.fullName ?: "User",
+                    userEmail = uiState.user?.email ?: "",
+                    userInitials = uiState.user?.avatarInitials ?: "U",
+                    viewsCount = uiState.viewsCount,
+                    favoritesCount = uiState.favoritesCount,
+                    isLoading = uiState.isLoading,
+                    onLogout = { viewModel.logout() },
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun loginFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Color(0xFFE53935),
-    unfocusedBorderColor = Color(0xFF2E2020),
-    focusedContainerColor = Color(0xFF1E1414),
-    unfocusedContainerColor = Color(0xFF1E1414),
-    focusedTextColor = Color(0xFFF5F5F5),
-    unfocusedTextColor = Color(0xFFF5F5F5),
-    cursorColor = Color(0xFFE53935)
-)
-
-@Preview(showBackground = true, widthDp = 390, heightDp = 844)
-@Composable
-fun MainLoginPreview() {
-    CineScopeProyectTheme {
-        MainLoginScreen()
     }
 }

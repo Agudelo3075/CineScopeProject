@@ -19,6 +19,7 @@ data class MovieDetailUi(
     val synopsis: String,
     val color1: Color,
     val color2: Color,
+    val imageUrl: String = "",
     val cast: List<CastMemberUi>
 )
 

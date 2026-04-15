@@ -73,7 +73,8 @@ fun HistorialScreen(
     isLoading: Boolean = false,
     onTabSelect: (Int) -> Unit = {},
     onRemoveFromHistory: (Long) -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onMovieClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     var selectedCategory by remember { mutableIntStateOf(selectedTab) }
@@ -266,7 +267,7 @@ fun HistorialScreen(
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 items(currentList) { item ->
-                    HistoryMovieCard(movie = item)
+                    HistoryMovieCard(movie = item, onClick = { onMovieClick(item.title) })
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
@@ -275,12 +276,13 @@ fun HistorialScreen(
 }
 
 @Composable
-private fun HistoryMovieCard(movie: WatchHistoryEntity) {
+private fun HistoryMovieCard(movie: WatchHistoryEntity, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(CardBg, RoundedCornerShape(12.dp))
             .border(1.dp, Color(0xFF2E2020), RoundedCornerShape(12.dp))
+            .clickable { onClick() }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

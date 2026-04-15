@@ -66,18 +66,18 @@ class UserRepository(context: Context) {
         prefs.edit().remove("user_id").apply()
     }
 
-    fun getFavoriteCount() = favoriteDao.getFavoriteCount()
-    fun getWatchedCount() = watchHistoryDao.getCompletedCount()
+    fun getFavoriteCount() = favoriteDao.getFavoriteCount(getLoggedInUserId())
+    fun getWatchedCount() = watchHistoryDao.getCompletedCount(getLoggedInUserId())
 
     suspend fun getFavoriteCountSync(): Int {
         var count = 0
-        favoriteDao.getFavoriteCount().collect { count = it; return@collect }
+        favoriteDao.getFavoriteCount(getLoggedInUserId()).collect { count = it; return@collect }
         return count
     }
 
     suspend fun getWatchedCountSync(): Int {
         var count = 0
-        watchHistoryDao.getCompletedCount().collect { count = it; return@collect }
+        watchHistoryDao.getCompletedCount(getLoggedInUserId()).collect { count = it; return@collect }
         return count
     }
 }
