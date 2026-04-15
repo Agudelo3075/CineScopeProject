@@ -53,7 +53,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.desarrollox.cinescopeproyect.data.local.entity.MovieEntity
 import com.desarrollox.cinescopeproyect.navigation.BottomRoute
 import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
-import com.desarrollox.cinescopeproyect.navigation.navigateToMovieDetail
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
 import com.desarrollox.cinescopeproyect.ui.viewmodel.SearchViewModel
 
@@ -89,7 +88,7 @@ class Busqueda : ComponentActivity() {
 }
 
 @Composable
-private fun BusquedaScreen(
+fun BusquedaScreen(
     query: String = "",
     selectedChip: String = "All",
     results: List<MovieEntity> = emptyList(),
@@ -270,7 +269,8 @@ private fun BusquedaScreen(
             }
         }
 
-            }
+        Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+            CineScopeBottomBar(context = context, selected = BottomRoute.Inicio)
         }
     }
 }

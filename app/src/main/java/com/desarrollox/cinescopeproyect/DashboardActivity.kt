@@ -175,6 +175,8 @@ fun DasboardScreen(
                         .align(Alignment.TopEnd)
                         .padding(top = 40.dp, end = 40.dp)
                         .background(
+                            Brush.radialGradient(
+                                listOf(
                                     Color(0xFF2A5AAA),
                                     Color(0xFF0A1A40)
                                 )

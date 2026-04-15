@@ -1,12 +1,21 @@
 package com.desarrollox.cinescopeproyect.navigation
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.desarrollox.cinescopeproyect.*
+import com.desarrollox.cinescopeproyect.Busqueda
+import com.desarrollox.cinescopeproyect.DashboardActivity
+import com.desarrollox.cinescopeproyect.DetallePelicula
+import com.desarrollox.cinescopeproyect.FavoritosActivity
+import com.desarrollox.cinescopeproyect.HistorialActivity
+import com.desarrollox.cinescopeproyect.MiListaActivity
+import com.desarrollox.cinescopeproyect.PerfilActivity
 
 /** Rutas de navegación de la aplicación. */
 sealed class Screen(val route: String) {
@@ -30,6 +39,54 @@ enum class BottomRoute(val route: String) {
     MiLista(Screen.MiLista.route),
     Favoritos(Screen.Favoritos.route),
     Perfil(Screen.Perfil.route)
+}
+
+fun detallePeliculaIntent(context: Context, movieTitle: String): Intent =
+    Intent(context, DetallePelicula::class.java).putExtra(DetallePelicula.EXTRA_TITLE, movieTitle)
+
+fun busquedaIntent(context: Context): Intent = Intent(context, Busqueda::class.java)
+
+private fun intentForSecondary(context: Context, target: BottomRoute): Intent = when (target) {
+    BottomRoute.Inicio -> Intent(context, DashboardActivity::class.java)
+    BottomRoute.Historial -> Intent(context, HistorialActivity::class.java)
+    BottomRoute.MiLista -> Intent(context, MiListaActivity::class.java)
+    BottomRoute.Favoritos -> Intent(context, FavoritosActivity::class.java)
+    BottomRoute.Perfil -> Intent(context, PerfilActivity::class.java)
+}
+
+fun Context.navigateToMovieDetail(movieTitle: String) {
+    startActivity(detallePeliculaIntent(this, movieTitle))
+}
+
+fun Context.navigateToBusqueda() {
+    startActivity(busquedaIntent(this))
+}
+
+fun Context.navigateToBottomRoute(target: BottomRoute) {
+    val activity = this as? Activity ?: return
+    val isSameDestination = when {
+        target == BottomRoute.Inicio && activity is DashboardActivity -> true
+        target == BottomRoute.Historial && activity is HistorialActivity -> true
+        target == BottomRoute.MiLista && activity is MiListaActivity -> true
+        target == BottomRoute.Favoritos && activity is FavoritosActivity -> true
+        target == BottomRoute.Perfil && activity is PerfilActivity -> true
+        else -> false
+    }
+    if (isSameDestination) return
+
+    if (target == BottomRoute.Inicio) {
+        activity.startActivity(
+            Intent(activity, DashboardActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+        )
+        return
+    }
+
+    activity.startActivity(intentForSecondary(activity, target))
+    if (activity !is DashboardActivity) {
+        activity.finish()
+    }
 }
 
 @Composable

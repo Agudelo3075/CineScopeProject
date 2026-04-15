@@ -1,5 +1,6 @@
 package com.desarrollox.cinescopeproyect.navigation
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -54,6 +55,61 @@ fun CineScopeBottomBar(
         return
     }
 
+    BottomBarContainer(modifier = modifier) {
+        BottomBarItem.values().forEach { item ->
+            BottomBarIcon(
+                icon = item.icon,
+                label = item.label,
+                selected = currentRoute == item.route,
+                onClick = {
+                    if (currentRoute != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun CineScopeBottomBar(
+    context: Context,
+    selected: BottomRoute,
+    modifier: Modifier = Modifier
+) {
+    BottomBarContainer(modifier = modifier) {
+        BottomBarItem.values().forEach { item ->
+            BottomBarIcon(
+                icon = item.icon,
+                label = item.label,
+                selected = selected.route == item.route,
+                onClick = {
+                    context.navigateToBottomRoute(
+                        when (item) {
+                            BottomBarItem.Inicio -> BottomRoute.Inicio
+                            BottomBarItem.Historial -> BottomRoute.Historial
+                            BottomBarItem.MiLista -> BottomRoute.MiLista
+                            BottomBarItem.Favoritos -> BottomRoute.Favoritos
+                            BottomBarItem.Perfil -> BottomRoute.Perfil
+                        }
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomBarContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable RowScope.() -> Unit
+) {
     Box(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -66,27 +122,9 @@ fun CineScopeBottomBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                BottomBarItem.values().forEach { item ->
-                    BottomBarIcon(
-                        icon = item.icon,
-                        label = item.label,
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            if (currentRoute != item.route) {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
-                    )
-                }
-            }
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                content = content
+            )
         }
     }
 }
