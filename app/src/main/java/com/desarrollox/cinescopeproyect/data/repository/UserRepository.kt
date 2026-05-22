@@ -2,8 +2,11 @@ package com.desarrollox.cinescopeproyect.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.desarrollox.cinescopeproyect.data.local.DatabaseProvider
 import com.desarrollox.cinescopeproyect.data.local.entity.*
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 
 class UserRepository(context: Context) {
     private val userDao = DatabaseProvider.getUserDao(context)
@@ -11,6 +14,8 @@ class UserRepository(context: Context) {
     private val watchHistoryDao = DatabaseProvider.getWatchHistoryDao(context)
     private val myListDao = DatabaseProvider.getMyListDao(context)
     private val ratingDao = DatabaseProvider.getRatingDao(context)
+    
+    private val db = Firebase.firestore
 
     private val prefs: SharedPreferences = context.getSharedPreferences(
         "cinescope_prefs", Context.MODE_PRIVATE
@@ -42,6 +47,23 @@ class UserRepository(context: Context) {
                 avatarInitials = initials.ifEmpty { fullName.take(2).uppercase() }
             )
             val id = userDao.insertUser(user)
+            
+            // Guardar también en Firebase Firestore
+            val userMap = hashMapOf(
+                "localId" to id,
+                "fullName" to fullName,
+                "email" to email,
+                "avatarInitials" to user.avatarInitials
+            )
+            db.collection("users").document(id.toString())
+                .set(userMap)
+                .addOnSuccessListener {
+                    Log.d("FirebaseSync", "Usuario guardado en Firestore con éxito.")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FirebaseSync", "Error al guardar el usuario en Firestore.", e)
+                }
+
             saveSession(id)
             Result.success(user.copy(id = id))
         }

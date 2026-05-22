@@ -30,6 +30,7 @@ sealed class Screen(val route: String) {
     object MiLista : Screen("mi_lista")
     object Favoritos : Screen("favoritos")
     object Perfil : Screen("perfil")
+    object BackendTest : Screen("backend_test")
 }
 
 /** Destinos de la barra inferior principal. */

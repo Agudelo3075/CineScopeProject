@@ -37,6 +37,7 @@ import com.desarrollox.cinescopeproyect.navigation.CineScopeBottomBar
 import com.desarrollox.cinescopeproyect.navigation.Screen
 import com.desarrollox.cinescopeproyect.ui.theme.CineScopeProyectTheme
 import com.desarrollox.cinescopeproyect.ui.viewmodel.*
+import com.desarrollox.cinescopeproyect.ui.BackendTestScreen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
@@ -148,6 +149,9 @@ fun CineScopeApp() {
                     onNavigateToBusqueda = { navController.navigate(Screen.Busqueda.route) },
                     onNavigateToMovieDetail = { title -> 
                         navController.navigate(Screen.Detalle.createRoute(title))
+                    },
+                    onTestBackendClick = {
+                        navController.navigate(Screen.BackendTest.route)
                     }
                 )
             }
@@ -182,8 +186,7 @@ fun CineScopeApp() {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 
                 LaunchedEffect(title) {
-                    // Aquí se cargaría la película según el título o ID
-                    // Por ahora el ViewModel usa el título que recibe
+                    viewModel.loadMovieByTitle(title)
                 }
                 
                 DetallePeliculaScreen(
@@ -277,6 +280,13 @@ fun CineScopeApp() {
                     favoritesCount = uiState.favoritesCount,
                     isLoading = uiState.isLoading,
                     onLogout = { viewModel.logout() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            // BACKEND TEST
+            composable(Screen.BackendTest.route) {
+                BackendTestScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

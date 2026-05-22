@@ -57,6 +57,15 @@ class MovieDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun loadMovieByTitle(title: String) {
+        viewModelScope.launch {
+            val movie = repository.getMovieByTitle(title)
+            if (movie != null) {
+                loadMovie(movie)
+            }
+        }
+    }
+
     fun toggleFavorite() {
         val movie = _uiState.value.movie ?: return
         viewModelScope.launch {

@@ -69,7 +69,8 @@ fun DasboardScreen(
     topRatedMovies: List<MovieEntity> = emptyList(),
     newReleases: List<MovieEntity> = emptyList(),
     onNavigateToBusqueda: () -> Unit = {},
-    onNavigateToMovieDetail: (String) -> Unit = {}
+    onNavigateToMovieDetail: (String) -> Unit = {},
+    onTestBackendClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -113,6 +114,15 @@ fun DasboardScreen(
                         Spacer(Modifier.width(6.dp))
                         Text("Search mov...", color = TextGray, fontSize = 12.sp)
                     }
+                }
+                Spacer(Modifier.width(10.dp))
+                Box(
+                    modifier = Modifier
+                        .background(CardDark, RoundedCornerShape(20.dp))
+                        .clickable { onTestBackendClick() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text("API", color = RedMain, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.width(10.dp))
                 Box(
